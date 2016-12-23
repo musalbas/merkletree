@@ -64,14 +64,14 @@ class MerkleTree(object):
         for leaf in self.leaves:
             leaf.p, leaf.sib, leaf.side = (None, ) * 3
 
-    def build(self):
+    def build(self, bitcoin=False):
         """Calculate the merkle root and make references between nodes in the tree.
         """
         if not self.leaves:
             raise MerkleError('The tree has no leaves and cannot be calculated.')
         layer = self.leaves[::]
         while len(layer) != 1:
-            layer = self._build(layer)
+            layer = self._build(layer, bitcoin)
         self.root = layer[0]
         return self.root.val
 
@@ -90,13 +90,15 @@ class MerkleTree(object):
             self.build_fun(layer=layer)
         return self.root.val
 
-    def _build(self, leaves):
+    def _build(self, leaves, bitcoin):
         """Private helper function to create the next aggregation level and put all references in place.
         """
         new, odd = [], None
-        # check if even number of leaves, promote odd leaf to next level, if not
         if len(leaves) % 2 == 1:
-            odd = leaves.pop(-1)
+            if bitcoin:
+                leaves.append(leaves[-1])
+            else:
+                odd = leaves.pop(-1)
         for i in range(0, len(leaves), 2):
             newnode = Node(leaves[i].val + leaves[i + 1].val)
             newnode.l, newnode.r = leaves[i], leaves[i + 1]
