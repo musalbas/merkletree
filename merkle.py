@@ -1,4 +1,5 @@
 from hashlib import sha256
+from binascii import hexlify, unhexlify
 
 hash_function = sha256
 
@@ -24,7 +25,7 @@ class Node(object):
         self.side = None
 
     def __repr__(self):
-        return "Val: <" + str(self.val.encode('hex')) + ">"
+        return "Val: <" + str(hexlify(self.val).decode()) + ">"
 
 
 class MerkleTree(object):
@@ -35,7 +36,7 @@ class MerkleTree(object):
     """
     def __init__(self, leaves=[], prehashed=False):
         if prehashed:
-            self.leaves = [Node(leaf.decode('hex'), prehashed=True) for leaf in leaves]
+            self.leaves = [Node(unhexlify(leaf), prehashed=True) for leaf in leaves]
         else:
             self.leaves = [Node(leaf) for leaf in leaves]
         self.root = None
@@ -51,7 +52,7 @@ class MerkleTree(object):
     def add_hash(self, value):
         """Add a Node based on a precomputed, hex encoded, hash value.
         """
-        self.leaves.append(Node(value.decode('hex'), prehashed=True))
+        self.leaves.append(Node(unhexlify(value), prehashed=True))
 
     def clear(self):
         """Clears the Merkle Tree by releasing the Merkle root and each leaf's references, the rest
@@ -130,12 +131,12 @@ class MerkleTree(object):
         """Assemble and return the chain leading from a given node to the merkle root of this tree
         with hash values in hex form
         """
-        return [(i[0].encode('hex'), i[1]) for i in self.get_chain(index)]
+        return [(hexlify(i[0]).decode(), i[1]) for i in self.get_chain(index)]
 
     def get_all_hex_chains(self):
         """Assemble and return a list of all chains for all nodes to the merkle root, hex encoded.
         """
-        return [[(i[0].encode('hex'), i[1]) for i in j] for j in self.get_all_chains()]
+        return [[(hexlify(i[0]).decode(), i[1]) for i in j] for j in self.get_all_chains()]
 
     def _get_whole_subtrees(self):
         """Returns an array of nodes in the tree that have balanced subtrees beneath them,
@@ -178,7 +179,7 @@ def check_chain(chain):
         elif chain[i][1] == 'L':
             link = hash_function(chain[i][0] + link).digest()
         else:
-            raise MerkleError('Link %s has no side value: %s' % (str(i), str(chain[i][0].encode('hex'))))
+            raise MerkleError('Link %s has no side value: %s' % (str(i), str(hexlify(chain[i][0]).decode())))
     if link == chain[-1][0]:
         return link
     else:
@@ -188,7 +189,7 @@ def check_chain(chain):
 def check_hex_chain(chain):
     """Verify a merkle chain, with hashes hex encoded, to see if the Merkle root can be reproduced.
     """
-    return check_chain([(i[0].decode('hex'), i[1]) for i in chain]).encode('hex')
+    return hexlify(check_chain([(unhexlify(i[0]), i[1]) for i in chain])).decode()
 
 
 def join_chains(low, high):
